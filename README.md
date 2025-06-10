@@ -1,6 +1,6 @@
 # SHA-256 Implementation (FIPS 180-4)
 
-This project is a clean and testable C++ implementation of the [SHA-256 cryptographic hash algorithm](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf), as specified in [FIPS PUB 180-4](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf) by NIST.
+This project is a clean and testable C++ implementation of the [SHA-256 cryptographic hash algorithm](https://www.simplilearn.com/tutorials/cyber-security-tutorial/sha-256-algorithm), as specified in [FIPS PUB 180-4](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf) by NIST.
 
 It includes:
 - A standalone SHA-256 implementation in C++
