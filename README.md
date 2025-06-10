@@ -74,14 +74,19 @@ This will:
 ```
 .
 ├── include/
-│   └── sha256.hpp          # Header for SHA-256 implementation
+│   └── sha256.hpp            # Header for SHA-256 implementation
+│   └── doctest.hpp           # Header for DOCTEST
+│   └── json.hpp              # Header for json parser
 ├── src/
-│   └── sha256.cpp          # SHA-256 logic
+│   └── sha256.cpp            # SHA-256 logic
+├── NIST_Test_vectors/
+│   └── SHA256LongMsg.rsp     # The NIST long message test vectors for SHA-256
+│   └── SHA256ShortMsg.rsp    # The NIST short message test vectors for SHA-256
+│   └── SHA256MonteCarlo.rsp  # The NIST Monte Carlo test vectors for SHA-256
 ├── tests/
-│   └── test_sha256.cpp     # Unit tests + NIST vector validation
-├── run_sha256_tests.py     # Python validator using hashlib
-├── test_vectors.json       # Auto-generated NIST-style test vectors
-├── main.cpp                # Simple interface for SHA-256
+│   └── test_sha256.cpp       # Unit tests + NIST vector validation
+├── run_sha256_tests.py       # Python validator using hashlib
+├── main.cpp                  # Simple interface for SHA-256
 ├── Makefile
 └── README.md
 ```
