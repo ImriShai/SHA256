@@ -82,11 +82,13 @@ void SHA256::padMessage(const std::string& input, std::vector<uint8_t>& padded) 
     padded.push_back(0x80);
 
     // Append '0' bits until the length is congruent to 56 mod 64
+    // The +8 accounts for the 64-bit length field that will be added later
     while ((padded.size() + 8) % 64 != 0)
         padded.push_back(0x00);
 
     // Append the original message length as a 64-bit big-endian integer
     for (int i = 7; i >= 0; i--) {
+        // Each iteration of the loop adds one byte to the padded vector, starting from the most significant byte to the least significant byte.
         padded.push_back(static_cast<uint8_t>((bitLen >> (i * 8)) & 0xff));
     }
 }
