@@ -8,7 +8,8 @@
  * @brief Implementation of the SHA-256 hashing algorithm based on the specification from FIPS PUB 180-4.
  */
 
-// Initial hash values (first 32 bits of the fractional parts of the square roots of the first 8 primes)
+// Initial hash values (first 32 bits of the fractional parts of the square roots of the first 8 primes) 
+// as described in section 5.3.3 of the SHA-256 specification.
 static const uint32_t H0[8] = {
     0x6a09e667, 0xbb67ae85, 0x3c6ef372,
     0xa54ff53a, 0x510e527f, 0x9b05688c,
@@ -16,6 +17,7 @@ static const uint32_t H0[8] = {
 };
 
 // SHA-256 constants (first 32 bits of the fractional parts of the cube roots of the first 64 primes)
+// as described in section 4.2.2 of the SHA-256 specification.
 const uint32_t SHA256::K[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf,
     0xe9b5dba5, 0x3956c25b, 0x59f111f1,
@@ -48,17 +50,22 @@ const uint32_t SHA256::K[64] = {
  */
 std::string SHA256::hash(const std::string& input) {
     std::vector<uint8_t> padded;
-    // Pad the input message according to SHA-256 specification
-    padMessage(input, padded);
+    // Pad the input message according to SHA-256 specification as described in section 5.1.1 of the SHA-256 specification.
+    // The padding process involves appending a '1' bit, followed by '0' bits, and finally appending the length of the original message as a 64-bit integer.
+    padMessage(input, padded); // Pad the input message as described in section 6.1.1 part 2 of the SHA-256 specification.
 
     uint32_t hash[8];
-    // Initialize hash values
+    // Initialize hash values as specified in section 6.1.1 part 1 of the SHA-256 specification.
     std::memcpy(hash, H0, sizeof(H0));
 
     // Process the padded message in 512-bit (64-byte) chunks
-    processChunks(padded, hash);
+    processChunks(padded, hash); // Process the padded message in 512-bit chunks as described in section 6.2.2 of the SHA-256 specification.
 
-    // Convert the resulting hash to a hexadecimal string
+    // Convert the resulting hash to a hexadecimal string, change the stram state to hex format, and ensure each byte is represented by two hex digits, filling with '0' if necessary.
+    // This is done by iterating over each 32-bit word in the hash state and formatting it as a zero-padded 8-character hexadecimal string.
+    // The final hash is a concatenation of these hexadecimal strings.
+    // The result is a 64-character hexadecimal string, which is the standard output format for SHA-256 hashes.
+    // This is described in the end of section 6.2.2 of the SHA-256 specification
     std::stringstream ss;
     for (int i = 0; i < 8; i++) {
         ss << std::hex << std::setw(8) << std::setfill('0') << hash[i];
@@ -99,8 +106,11 @@ void SHA256::padMessage(const std::string& input, std::vector<uint8_t>& padded) 
  * @param hash The hash state array to update.
  */
 void SHA256::processChunks(const std::vector<uint8_t>& padded, uint32_t hash[8]) {
-    // Process each 64-byte chunk
-    for (size_t i = 0; i < padded.size(); i += 64) {
+    // Process each 64-byte chunk in the padded message.
+    // The padded message is expected to be a multiple of 64 bytes (512 bits) as required by the SHA-256 specification.
+    // The loop iterates over the padded message in 64-byte chunks, calling transformChunk for each chunk, as described in section 6.2.2 of the SHA-256 specification, the main compression loop.
+    const size_t N = padded.size();
+    for (size_t i = 0; i < N; i += 64) {
         transformChunk(&padded[i], hash);
     }
 }
@@ -113,19 +123,26 @@ void SHA256::processChunks(const std::vector<uint8_t>& padded, uint32_t hash[8])
 void SHA256::transformChunk(const uint8_t* chunk, uint32_t hash[8]) {
     uint32_t w[64];
 
-    // Prepare the message schedule
-    for (int i = 0; i < 16; i++) {
-        w[i] = (chunk[i * 4] << 24) |
-               (chunk[i * 4 + 1] << 16) |
-               (chunk[i * 4 + 2] << 8) |
-               (chunk[i * 4 + 3]);
+    // Prepare the message schedule, as described in section 6.2.2 of the SHA-256 specification - Part 1 of the SHA-256 algorithm computation.
+    // The first 16 words are directly from the chunk, M^i_0 to M^i_15.
+    // Each word is 32 bits, so we read 4 bytes at a time.
+    // The chunk is expected to be 64 bytes (512 bits) long.
+    for (int t = 0; t < 16; t++) {
+        w[t] = (chunk[t * 4] << 24) | //take the first byte and shift it to the left by 24 bits
+               (chunk[t * 4 + 1] << 16) | //take the second byte and shift it to the left by 16 bits
+               (chunk[t * 4 + 2] << 8) | //take the third byte and shift it to the left by 8 bits
+               (chunk[t * 4 + 3]); //take the fourth byte and leave it as is, creating a 32-bit word
     }
 
-    for (int i = 16; i < 64; i++) {
-        w[i] = sig1(w[i - 2]) + w[i - 7] + sig0(w[i - 15]) + w[i - 16];
+
+    // Extend the first 16 words into the remaining 48 words of the message schedule.
+    // This is done using the small sigma functions as described in section 6.2.2 of the SHA-256 specification.
+    for (int t = 16; t < 64; t++) {
+        w[t] = sig1(w[t - 2]) + w[t - 7] + sig0(w[t - 15]) + w[t - 16];
     }
 
-    // Initialize working variables with current hash value
+    // Initialize working variables with current hash value - Part 2 of the SHA-256 algorithm, as described in section 6.2.2 of the SHA-256 specification.
+
     uint32_t a = hash[0];
     uint32_t b = hash[1];
     uint32_t c = hash[2];
@@ -135,21 +152,21 @@ void SHA256::transformChunk(const uint8_t* chunk, uint32_t hash[8]) {
     uint32_t g = hash[6];
     uint32_t h = hash[7];
 
-    // Main compression function
+    // Main compression function - Part 3 of the SHA-256 algorithm, as described in section 6.2.2 of the SHA-256 specification.
     for (int i = 0; i < 64; i++) {
-        uint32_t temp1 = h + ep1(e) + choose(e, f, g) + K[i] + w[i];
-        uint32_t temp2 = ep0(a) + majority(a, b, c);
+        uint32_t T1 = h + ep1(e) + choose(e, f, g) + K[i] + w[i];
+        uint32_t T2 = ep0(a) + majority(a, b, c);
         h = g;
         g = f;
         f = e;
-        e = d + temp1;
+        e = d + T1;
         d = c;
         c = b;
         b = a;
-        a = temp1 + temp2;
+        a = T1 + T2;
     }
 
-    // Add the compressed chunk to the current hash value
+    // Add the compressed chunk to the current hash value - Part 4 of the SHA-256 algorithm, as described in section 6.2.2 of the SHA-256 specification.
     hash[0] += a;
     hash[1] += b;
     hash[2] += c;
@@ -167,29 +184,29 @@ void SHA256::transformChunk(const uint8_t* chunk, uint32_t hash[8]) {
  * @return The rotated value.
  */
 uint32_t SHA256::rotr(uint32_t x, uint32_t n) {
-    return (x >> n) | (x << (32 - n));
+    return (x >> n) | (x << (32 - n)); //Rotate right by n bits as described in section 4.1.2 of the SHA-256 specification.
 }
 
 /**
- * @brief SHA-256 choose function: (e AND f) XOR ((NOT e) AND g)
- * @param e First input.
- * @param f Second input.
- * @param g Third input.
+ * @brief SHA-256 choose function: (x AND y) XOR ((NOT x) AND z)
+ * @param x First input.
+ * @param y Second input.
+ * @param z Third input.
  * @return The result of the choose function.
  */
-uint32_t SHA256::choose(uint32_t e, uint32_t f, uint32_t g) {
-    return (e & f) ^ (~e & g);
+uint32_t SHA256::choose(uint32_t x, uint32_t y, uint32_t z) {
+    return (x & y) ^ (~x & z); //Choose function as described in section 4.1.2 of the SHA-256 specification.
 }
 
 /**
- * @brief SHA-256 majority function: (a AND b) XOR (a AND c) XOR (b AND c)
- * @param a First input.
- * @param b Second input.
- * @param c Third input.
+ * @brief SHA-256 majority function: (x AND y) XOR (x AND z) XOR (y AND z)
+ * @param x First input.
+ * @param y Second input.
+ * @param z Third input.
  * @return The result of the majority function.
  */
-uint32_t SHA256::majority(uint32_t a, uint32_t b, uint32_t c) {
-    return (a & b) ^ (a & c) ^ (b & c);
+uint32_t SHA256::majority(uint32_t x, uint32_t y, uint32_t z) {
+    return (x & y) ^ (x & z) ^ (y & z);
 }
 
 /**
@@ -198,7 +215,7 @@ uint32_t SHA256::majority(uint32_t a, uint32_t b, uint32_t c) {
  * @return The result of the function.
  */
 uint32_t SHA256::sig0(uint32_t x) {
-    return rotr(x, 7) ^ rotr(x, 18) ^ (x >> 3);
+    return rotr(x, 7) ^ rotr(x, 18) ^ (x >> 3); //Small sigma 0 function as described in section 4.1.2 of the SHA-256 specification.
 }
 
 /**
@@ -207,7 +224,7 @@ uint32_t SHA256::sig0(uint32_t x) {
  * @return The result of the function.
  */
 uint32_t SHA256::sig1(uint32_t x) {
-    return rotr(x, 17) ^ rotr(x, 19) ^ (x >> 10);
+    return rotr(x, 17) ^ rotr(x, 19) ^ (x >> 10); //Small sigma 1 function as described in section 4.1.2 of the SHA-256 specification.
 }
 
 /**
@@ -216,7 +233,7 @@ uint32_t SHA256::sig1(uint32_t x) {
  * @return The result of the function.
  */
 uint32_t SHA256::ep0(uint32_t x) {
-    return rotr(x, 2) ^ rotr(x, 13) ^ rotr(x, 22);
+    return rotr(x, 2) ^ rotr(x, 13) ^ rotr(x, 22); //Big sigma 0 function as described in section 4.1.2 of the SHA-256 specification.
 }
 
 /**
@@ -225,5 +242,5 @@ uint32_t SHA256::ep0(uint32_t x) {
  * @return The result of the function.
  */
 uint32_t SHA256::ep1(uint32_t x) {
-    return rotr(x, 6) ^ rotr(x, 11) ^ rotr(x, 25);
+    return rotr(x, 6) ^ rotr(x, 11) ^ rotr(x, 25); //Big sigma 1 function as described in section 4.1.2 of the SHA-256 specification.
 }
